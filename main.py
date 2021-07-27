@@ -258,7 +258,7 @@ def validate(config, data_loader, model):
         algo_target = data['algo']
         images = images.cuda(non_blocking=True)
         target = target.cuda(non_blocking=True)
-        algo_target = algo_targets.cuda(non_blocking=True)
+        algo_target = algo_target.cuda(non_blocking=True)
 
         # compute output
         output = model(images)
