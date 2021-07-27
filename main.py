@@ -249,7 +249,6 @@ def validate(config, data_loader, model):
     acc1_meter = AverageMeter()
     acc5_meter = AverageMeter()
     algo_acc1_meter = AverageMeter()
-    algo_acc5_meter = AverageMeter()
 
     end = time.time()
     for idx, data in enumerate(data_loader):
@@ -269,19 +268,18 @@ def validate(config, data_loader, model):
         algo_loss = criterion(algo_pred, algo_target)
         loss = label_loss + algo_loss
         acc1, acc5 = accuracy(label_pred, target, topk=(1, 5))
-        algo_acc1, algo_acc5 = accuracy(algo_pred, algo_target, topk=(1, 5))
+        algo_acc1 = accuracy(algo_pred, algo_target, topk=(1,))
+        algo_acc1 = algo_acc1[0]
 
         loss = reduce_tensor(loss)
         acc1 = reduce_tensor(acc1)
         acc5 = reduce_tensor(acc5)
         algo_acc1 = reduce_tensor(algo_acc1)
-        algo_acc5 = reduce_tensor(algo_acc5)
 
         loss_meter.update(loss.item(), target.size(0))
         acc1_meter.update(acc1.item(), target.size(0))
         acc5_meter.update(acc5.item(), target.size(0))
         algo_acc1_meter.update(algo_acc1.item(), target.size(0))
-        algo_acc5_meter.update(algo_acc5.item(), target.size(0))
 
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -296,10 +294,9 @@ def validate(config, data_loader, model):
                 f'Acc@1 {acc1_meter.val:.3f} ({acc1_meter.avg:.3f})\t'
                 f'Acc@5 {acc5_meter.val:.3f} ({acc5_meter.avg:.3f})\t'
                 f'algoAcc@1 {algo_acc1_meter.val:.3f} ({algo_acc1_meter.avg:.3f})\t'
-                f'algoAcc@5 {algo_acc5_meter.val:.3f} ({algo_acc5_meter.avg:.3f})\t'
                 f'Mem {memory_used:.0f}MB')
     logger.info(f' * Acc@1 {acc1_meter.avg:.3f} Acc@5 {acc5_meter.avg:.3f}'
-                f' algoAcc@1 {algo_acc1_meter.avg:.3f} algoAcc@5 {algo_acc5_meter.avg:.3d}')
+                f' algoAcc@1 {algo_acc1_meter.avg:.3f}')
     return acc1_meter.avg, acc5_meter.avg, loss_meter.avg
 
 
