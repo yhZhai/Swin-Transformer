@@ -158,7 +158,9 @@ def train_one_epoch(config, model, criterion, data_loader, optimizer, epoch, mix
 
     start = time.time()
     end = time.time()
-    for idx, (samples, targets) in enumerate(data_loader):
+    for idx, data in enumerate(data_loader):
+        samples = data['image']
+        targets = data['label']
         samples = samples.cuda(non_blocking=True)
         targets = targets.cuda(non_blocking=True)
 
@@ -239,7 +241,9 @@ def validate(config, data_loader, model):
     acc5_meter = AverageMeter()
 
     end = time.time()
-    for idx, (images, target) in enumerate(data_loader):
+    for idx, data in enumerate(data_loader):
+        images = data['image']
+        target = data['label']
         images = images.cuda(non_blocking=True)
         target = target.cuda(non_blocking=True)
 

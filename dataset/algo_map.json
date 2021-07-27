@@ -1,0 +1,10 @@
+{
+    "0": "blur",
+    "blur": "0",
+    "1": "deepfillv2",
+    "deepfillv2": "1",
+    "2": "edge-connect",
+    "edge-connect": "2",
+    "3": "unmodified",
+    "unmodified": "3"
+}
