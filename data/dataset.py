@@ -42,6 +42,7 @@ class HKDataset(torch.utils.data.Dataset):
             image = image.convert('RGB')
         if self.transform is not None:
             image = self.transform(image)
+
         return {'image': image, 'algo': algo, 'label': label}
 
     def __len__(self):

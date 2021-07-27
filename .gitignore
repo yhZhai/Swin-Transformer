@@ -131,3 +131,5 @@ dmypy.json
 
 dataset/train
 dataset/test
+output/
+
