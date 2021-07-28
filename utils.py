@@ -26,8 +26,8 @@ def load_checkpoint(config, model, optimizer, lr_scheduler, logger):
     try:
         msg = model.load_state_dict(checkpoint['model'], strict=False)
     except:
-        del checkpoint['model']['proj.weight']
-        del checkpoint['model']['proj.bias']
+        del checkpoint['model']['head.weight']
+        del checkpoint['model']['head.bias']
         msg = model.load_state_dict(checkpoint['model'], strict=False)
     logger.info(msg)
     max_accuracy = 0.0
