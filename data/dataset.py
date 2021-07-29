@@ -11,10 +11,11 @@ import torchvision
 
 class HKDataset(torch.utils.data.Dataset):
     def __init__(self, datalist, data_path, algo_map, label_map,
-                 transform=None):
+                 transform=None, ignore_image=False):
         super().__init__()
         self.data_path = data_path
         self.transform = transform
+        self.ignore_image = ignore_image
 
         self.datalist = []
         with open(datalist, 'r') as f:
@@ -31,6 +32,7 @@ class HKDataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
         info = self.datalist[index]
         challenge_id = info['challenge_id']
+        ref_string = info['ref_string']
 
         algo = info['algo']
         algo = int(self.algo_map[algo])
@@ -38,17 +40,22 @@ class HKDataset(torch.utils.data.Dataset):
         label = info['object_class']
         label = int(self.label_map[label])
 
-        image_path = os.path.join(self.data_path, info['filename'])
-        with open(image_path, 'rb') as f:
-            image = Image.open(f)
-            image = image.convert('RGB')
-        if self.transform is not None:
-            image = self.transform(image)
+        result = {'algo': algo,
+                  'label': label,
+                  'id': challenge_id,
+                  'ref_string': ref_string}
 
-        return {'image': image,
-                'algo': algo,
-                'label': label,
-                'id': challenge_id}
+        if not self.ignore_image:
+            image_path = os.path.join(self.data_path, info['filename'])
+            with open(image_path, 'rb') as f:
+                image = Image.open(f)
+                image = image.convert('RGB')
+            if self.transform is not None:
+                image = self.transform(image)
+
+            result.update({'image': image})
+
+        return result
 
     def __len__(self):
         return len(self.datalist)

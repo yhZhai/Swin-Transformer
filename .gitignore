@@ -133,4 +133,5 @@ dataset/train
 dataset/test
 output/
 obsolete/
+.DS_Store
 
