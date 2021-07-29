@@ -250,6 +250,10 @@ def validate(config, data_loader, model):
     acc5_meter = AverageMeter()
     algo_acc1_meter = AverageMeter()
 
+    save_eval = True
+    save_dir = 'save'
+    if save_eval and not os.path.exists(save_dir):
+        os.mkdir(save_dir)
     end = time.time()
     for idx, data in enumerate(data_loader):
         images = data['image']
@@ -262,6 +266,17 @@ def validate(config, data_loader, model):
         # compute output
         output = model(images)
         label_pred, algo_pred = output
+        
+        if save_eval:
+            challenge_ids = data['id'].tolist()
+            bs = label_pred.shape[0]
+            label_pred_np = label_pred.detach().cpu().numpy()
+            algo_pred_np = algo_pred.detach().cpu().numpy()
+            for b in range(bs):
+                batch_label_pred_np = label_pred_np[b, :]
+                batch_algo_pred_np = algo_pred_np[b, :]
+                np.save(os.path.join(save_dir, f'{challenge_ids[b]}_label.npy'), batch_label_pred_np)
+                np.save(os.path.join(save_dir, f'{challenge_ids[b]}_algo.npy'), batch_algo_pred_np)
 
         # measure accuracy and record loss
         label_loss = criterion(label_pred, target)

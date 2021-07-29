@@ -21,15 +21,17 @@ class HKDataset(torch.utils.data.Dataset):
             dataset = csv.DictReader(f)
             for row in dataset:
                 self.datalist.append(row)
-        
+
         with open(algo_map, 'r') as f:
             self.algo_map = json.load(f)
-        
+
         with open(label_map, 'r') as f:
             self.label_map = json.load(f)
 
     def __getitem__(self, index):
         info = self.datalist[index]
+        challenge_id = info['challenge_id']
+
         algo = info['algo']
         algo = int(self.algo_map[algo])
 
@@ -43,18 +45,21 @@ class HKDataset(torch.utils.data.Dataset):
         if self.transform is not None:
             image = self.transform(image)
 
-        return {'image': image, 'algo': algo, 'label': label}
+        return {'image': image,
+                'algo': algo,
+                'label': label,
+                'id': challenge_id}
 
     def __len__(self):
         return len(self.datalist)
 
 
 if __name__ == '__main__':
-    dataset = Dataset('dataset/metadata_train.csv',
-                      'dataset',
-                      'dataset/algo_map.json',
-                      'dataset/label_map.json',
-                      transform=torchvision.transforms.ToTensor())
+    dataset = HKDataset('dataset/metadata_train.csv',
+                        'dataset',
+                        'dataset/algo_map.json',
+                        'dataset/label_map.json',
+                        transform=torchvision.transforms.ToTensor())
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1)
     for i, data in enumerate(dataloader):
         print(i)
@@ -78,9 +83,8 @@ if __name__ == '__main__':
     #     label_dict[item] = f'{i}'
     # with open('dataset/algo_map.json', 'w') as f:
     #     json.dump(algo_dict, f)
-    #     
+    #
     # with open('dataset/label_map.json', 'w') as f:
     #     json.dump(label_dict, f)
-    #     
+    #
     # print('done')
-    
