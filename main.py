@@ -148,34 +148,41 @@ def main(config):
     logger.info('Training time {}'.format(total_time_str))
 
 
-def srm_process(image):
+def get_srm_weights(device):
     weights1 = torch.tensor([[0., 0., 0., 0., 0.,],
                             [0., -1, 2, -1, 0.],
                             [0, 2, -4, 2, 0],
                             [0., -1, 2, -1, 0.],
-                            [0., 0., 0., 0., 0.,]])
+                            [0., 0., 0., 0., 0.,]], device=device)
     weights1 = weights1 / 4
-    weights1 = weights1.view(1, 1, 3, 3).repeat(1, 3, 1, 1)
+    weights1 = weights1.view(1, 1, 5, 5).repeat(1, 3, 1, 1)
     weights2 = torch.tensor([[-1, 2, -2, 2, -1],
                              [2, -6, 8, -6, 2],
                              [-2, 8, -12, 8, -2],
                              [2, -6, 8, -6, 2],
-                             [-1, 2, -2, 2, -1]])
+                             [-1, 2, -2, 2, -1]], device=device)
     weights2 = weights2 / 12
-    weights2 = weights2.view(1, 1, 3, 3).repeat(1, 3, 1, 1)
+    weights2 = weights2.view(1, 1, 5, 5).repeat(1, 3, 1, 1)
     weights3 = torch.tensor([[0., 0., 0., 0., 0.],
                              [0., 0., 0., 0., 0.],
                              [0., -1, 2, -1, 0.],
                              [0., 0., 0., 0., 0.],
-                            [0., 0., 0., 0., 0.]])
+                            [0., 0., 0., 0., 0.]], device=device)
     weights3 = weights3 / 2
-    weights3 = weights3.view(1, 1, 3, 3).repeat(1, 3, 1, 1)
+    weights3 = weights3.view(1, 1, 5, 5).repeat(1, 3, 1, 1)
+
+    return weights1, weights2, weights3
+
+
+def srm_process(image, weights):
 
     with torch.no_grad():
-        o1 = F.conv2d(image, weights1)
-        o2 = F.conv2d(image, weights2)
-        o3 = F.conv2d(image, weights3)
-    
+        o1 = F.conv2d(image, weights[0], padding=2)
+        o2 = F.conv2d(image, weights[1], padding=2)
+        o3 = F.conv2d(image, weights[2], padding=2)
+    noise_map = torch.cat([o1, o2, o3], dim=1)
+    return torch.cat([image, noise_map], dim=1)
+
     
 def train_one_epoch(config, model, criterion, data_loader, optimizer, epoch, mixup_fn, lr_scheduler):
     model.train()
@@ -188,6 +195,7 @@ def train_one_epoch(config, model, criterion, data_loader, optimizer, epoch, mix
 
     start = time.time()
     end = time.time()
+    srm_kernels = get_srm_weights(torch.device('cuda'))
     for idx, data in enumerate(data_loader):
         samples = data['image']
         targets = data['label']
@@ -195,6 +203,7 @@ def train_one_epoch(config, model, criterion, data_loader, optimizer, epoch, mix
         samples = samples.cuda(non_blocking=True)
         targets = targets.cuda(non_blocking=True)
         algo_targets = algo_targets.cuda(non_blocking=True)
+        samples = srm_process(samples, srm_kernels) 
 
         if mixup_fn is not None:
             samples, targets = mixup_fn(samples, targets)
@@ -280,11 +289,12 @@ def validate(config, data_loader, model):
     acc5_meter = AverageMeter()
     algo_acc1_meter = AverageMeter()
 
-    save_eval = True
+    save_eval = False
     save_dir = 'save'
     if save_eval and not os.path.exists(save_dir):
         os.mkdir(save_dir)
     end = time.time()
+    srm_kernels = get_srm_weights(torch.device('cuda'))
     for idx, data in enumerate(data_loader):
         images = data['image']
         target = data['label']
@@ -292,13 +302,14 @@ def validate(config, data_loader, model):
         images = images.cuda(non_blocking=True)
         target = target.cuda(non_blocking=True)
         algo_target = algo_target.cuda(non_blocking=True)
+        images = srm_process(images, srm_kernels) 
 
         # compute output
         output = model(images)
         label_pred, algo_pred = output
         
         if save_eval:
-            challenge_ids = data['id'].tolist()
+            challenge_ids = data['id']
             bs = label_pred.shape[0]
             label_pred_np = label_pred.detach().cpu().numpy()
             algo_pred_np = algo_pred.detach().cpu().numpy()
