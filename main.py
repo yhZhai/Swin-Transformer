@@ -12,6 +12,7 @@ import datetime
 import numpy as np
 
 import torch
+import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 
@@ -147,6 +148,35 @@ def main(config):
     logger.info('Training time {}'.format(total_time_str))
 
 
+def srm_process(image):
+    weights1 = torch.tensor([[0., 0., 0., 0., 0.,],
+                            [0., -1, 2, -1, 0.],
+                            [0, 2, -4, 2, 0],
+                            [0., -1, 2, -1, 0.],
+                            [0., 0., 0., 0., 0.,]])
+    weights1 = weights1 / 4
+    weights1 = weights1.view(1, 1, 3, 3).repeat(1, 3, 1, 1)
+    weights2 = torch.tensor([[-1, 2, -2, 2, -1],
+                             [2, -6, 8, -6, 2],
+                             [-2, 8, -12, 8, -2],
+                             [2, -6, 8, -6, 2],
+                             [-1, 2, -2, 2, -1]])
+    weights2 = weights2 / 12
+    weights2 = weights2.view(1, 1, 3, 3).repeat(1, 3, 1, 1)
+    weights3 = torch.tensor([[0., 0., 0., 0., 0.],
+                             [0., 0., 0., 0., 0.],
+                             [0., -1, 2, -1, 0.],
+                             [0., 0., 0., 0., 0.],
+                            [0., 0., 0., 0., 0.]])
+    weights3 = weights3 / 2
+    weights3 = weights3.view(1, 1, 3, 3).repeat(1, 3, 1, 1)
+
+    with torch.no_grad():
+        o1 = F.conv2d(image, weights1)
+        o2 = F.conv2d(image, weights2)
+        o3 = F.conv2d(image, weights3)
+    
+    
 def train_one_epoch(config, model, criterion, data_loader, optimizer, epoch, mixup_fn, lr_scheduler):
     model.train()
     optimizer.zero_grad()
